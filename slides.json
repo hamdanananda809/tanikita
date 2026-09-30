@@ -1,0 +1,34 @@
+[
+  {
+    "id": "slide-1",
+    "image": "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=1600&q=80",
+    "title": "Hubungkan Petani & Pekerja Tani",
+    "subtitle": "Gabung grup WhatsApp wilayah Anda dan temukan tenaga kerja dalam hitungan menit",
+    "buttonText": "Cari Wilayah",
+    "buttonLink": "#direktori"
+  },
+  {
+    "id": "slide-2",
+    "image": "https://images.unsplash.com/photo-1500937386664-56d1dfef3859?w=1600&q=80",
+    "title": "Panen Lebih Mudah Bersama",
+    "subtitle": "Ribuan petani dan buruh tani sudah terhubung di seluruh Jawa Timur",
+    "buttonText": "Gabung Sekarang",
+    "buttonLink": "#direktori"
+  },
+  {
+    "id": "slide-3",
+    "image": "https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=1600&q=80",
+    "title": "100% Gratis & Terverifikasi",
+    "subtitle": "Setiap grup dikelola admin lokal. Tanpa biaya, tanpa potongan upah",
+    "buttonText": "Lihat Cara Kerja",
+    "buttonLink": "#cara-kerja"
+  },
+  {
+    "id": "slide-4",
+    "image": "https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=1600&q=80",
+    "title": "Dari Sawah ke Kesejahteraan",
+    "subtitle": "Platform kolaborasi pertanian modern untuk petani Indonesia",
+    "buttonText": "Daftar Wilayah Baru",
+    "buttonLink": "https://wa.me/6281234567890?text=Halo%20Admin%20TaniKerja"
+  }
+]

@@ -1,0 +1,18 @@
+[
+  {
+    "id": "slide-1",
+    "image": "images/slide1.jpg",
+    "title": "Hubungkan Petani & Pekerja Tani",
+    "subtitle": "Gabung grup WhatsApp wilayah Anda...",
+    "buttonText": "Cari Wilayah",
+    "buttonLink": "#direktori"
+  },
+  {
+    "id": "slide-2",
+    "image": "images/slide2.jpg",
+    "title": "Panen Lebih Mudah Bersama",
+    "subtitle": "Ribuan petani sudah terhubung...",
+    "buttonText": "Gabung Sekarang",
+    "buttonLink": "#direktori"
+  }
+]

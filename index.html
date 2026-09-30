@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaniKita — Portal Penghubung Petani & Pekerja Pertanian </title>
+    <meta name="description" content="Platform resmi menghubungkan petani dan pekerja tani melalui grup WhatsApp & Facebook per wilayah. Cepat, gratis, dan terverifikasi.">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        .region-card {
+            transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        .region-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 16px 32px -12px rgba(16, 185, 129, 0.18);
+            border-color: rgba(16, 185, 129, 0.45);
+        }
+        .filter-btn.active,
+        .pekerja-filter-btn.active {
+            background-color: rgb(5 150 105);
+            color: white;
+            box-shadow: 0 4px 12px -2px rgba(5, 150, 105, 0.4);
+        }
+        .badge-kab { font-size: 10px; letter-spacing: 0.04em; }
+        .spinner {
+            width: 28px; height: 28px;
+            border: 3px solid #334155;
+            border-top-color: #10b981;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== SLIDER ===== */
+        .slider-wrap {
+            position: relative;
+            width: 100%;
+            height: 420px;
+            overflow: hidden;
+            background: #0f172a;
+        }
+        @media (min-width: 640px) { .slider-wrap { height: 480px; } }
+        @media (min-width: 1024px) { .slider-wrap { height: 560px; } }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+            pointer-events: none;
+        }
+        .slide.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+        .slide-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                to right,
+                rgba(2, 6, 23, 0.85) 0%,
+                rgba(2, 6, 23, 0.55) 45%,
+                rgba(2, 6, 23, 0.25) 100%
+            );
+        }
+        .slide-content {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            z-index: 2;
+        }
+        .slider-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+            backdrop-filter: blur(8px);
+        }
+        .slider-arrow:hover {
+            background: rgba(16, 185, 129, 0.8);
+            transform: translateY(-50%) scale(1.05);
+        }
+        .slider-arrow.prev { left: 16px; }
+        .slider-arrow.next { right: 16px; }
+        @media (min-width: 640px) {
+            .slider-arrow.prev { left: 24px; }
+            .slider-arrow.next { right: 24px; }
+        }
+        .slider-dots {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            gap: 8px;
+        }
+        .slider-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.35);
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+            padding: 0;
+        }
+        .slider-dot.active {
+            background: #10b981;
+            transform: scale(1.25);
+        }
+        .slider-dot:hover { background: rgba(255,255,255,0.7); }
+
+        /* Progress bar */
+        .slider-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: #10b981;
+            z-index: 11;
+            width: 0%;
+            transition: width 0.05s linear;
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased selection:bg-emerald-500 selection:text-white">
+
+    <!-- ========== HEADER ========== -->
+    <header class="sticky top-0 z-50 backdrop-blur-xl bg-slate-950/90 border-b border-slate-800/80">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <a href="#" class="flex items-center gap-3 group">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-900/40 group-hover:scale-105 transition duration-200">
+                    <i class="fa-solid fa-seedling text-white text-lg"></i>
+                </div>
+                <div class="leading-tight">
+                    <span class="text-[10px] font-semibold text-emerald-400 tracking-widest uppercase block">Portal Resmi</span>
+                    <span class="text-base font-extrabold text-white tracking-tight">Tani<span class="text-emerald-400">Kita</span></span>
+                </div>
+            </a>
+
+            <nav class="hidden md:flex items-center gap-1 text-sm font-medium">
+                
+                <a href="https://wa.me" class="block px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 font-medium">Pengempul</a>
+                <a href="#direktori" class="px-3.5 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition">Cari Wilayah</a>
+                <a href="#pekerja" class="px-3.5 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition">Pekerja Terverifikasi</a>
+                <a href="#cara-kerja" class="px-3.5 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition">Cara Kerja</a>
+                <a href="#fitur" class="px-3.5 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition">Keunggulan</a>
+                <a href="https://wa.me/6285655533201?text=Halo%20Admin%20TaniKerja%2C%20saya%20ingin%20mendaftarkan%20kecamatan%20baru"
+                   target="_blank" rel="noopener"
+                   class="ml-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl shadow-lg shadow-emerald-600/25 transition font-semibold flex items-center gap-2 text-sm">
+                    <i class="fa-brands fa-whatsapp text-base"></i>
+                    Daftar Wilayah
+                </a>
+            </nav>
+
+            <button id="menuBtn" class="md:hidden p-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition" aria-label="Menu">
+                <i class="fa-solid fa-bars text-lg"></i>
+            </button>
+        </div>
+
+        <div id="mobileMenu" class="hidden md:hidden border-t border-slate-800 bg-slate-950 px-4 py-4 space-y-1">
+            <a href="https://wa.me" class="block px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 font-medium">Pengempul</a>
+            <a href="#direktori" class="block px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 font-medium">Cari Wilayah</a>
+            <a href="#pekerja" class="block px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 font-medium">Pekerja Terverifikasi</a>
+            <a href="#cara-kerja" class="block px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 font-medium">Cara Kerja</a>
+            <a href="#fitur" class="block px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 font-medium">Keunggulan</a>
+            <a href="https://wa.me/6285655533201?text=Halo%20Admin%20TaniKerja%2C%20saya%20ingin%20mendaftarkan%20kecamatan%20baru"
+               target="_blank" rel="noopener"
+               class="mt-2 flex items-center justify-center gap-2 bg-emerald-600 text-white py-2.5 rounded-xl font-semibold">
+                <i class="fa-brands fa-whatsapp"></i> Daftar Wilayah Baru
+            </a>
+        </div>
+    </header>
+
+    <!-- ========== HERO SLIDER (gambar dari slides.json) ========== -->
+    <section class="relative">
+        <div class="slider-wrap" id="sliderWrap">
+            <!-- slides diisi oleh JS dari slides.json -->
+            <div id="slidesContainer"></div>
+
+            <!-- arrows -->
+            <button class="slider-arrow prev" id="sliderPrev" aria-label="Sebelumnya">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <button class="slider-arrow next" id="sliderNext" aria-label="Berikutnya">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+
+            <!-- dots -->
+            <div class="slider-dots" id="sliderDots"></div>
+
+            <!-- progress -->
+            <div class="slider-progress" id="sliderProgress"></div>
+        </div>
+
+        <!-- Stats bar di bawah slider -->
+        <div class="bg-slate-900 border-b border-slate-800">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-map-location-dot"></i>
+                        </div>
+                        <div>
+                            <div class="text-xl font-extrabold text-white" id="statKecamatan">—</div>
+                            <div class="text-[11px] text-slate-500">Kecamatan Terdaftar</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-400 flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                        <div>
+                            <div class="text-xl font-extrabold text-white">12.500+</div>
+                            <div class="text-[11px] text-slate-500">Petani &amp; Pekerja</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-hand-holding-dollar"></i>
+                        </div>
+                        <div>
+                            <div class="text-xl font-extrabold text-white">100%</div>
+                            <div class="text-[11px] text-slate-500">Gratis Sepenuhnya</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-400 flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-bolt"></i>
+                        </div>
+                        <div>
+                            <div class="text-xl font-extrabold text-white">Real-time</div>
+                            <div class="text-[11px] text-slate-500">Via WA &amp; Facebook</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== DIREKTORI ========== -->
+    <section id="direktori" class="py-14 sm:py-16 border-b border-slate-800/60 bg-slate-900/40">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6">
+            <div class="text-center mb-8">
+                <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">Direktori</span>
+                <h2 class="text-2xl sm:text-3xl font-bold text-white mt-3">Grup WhatsApp &amp; Facebook Wilayah</h2>
+                <p class="text-slate-400 text-sm mt-2 max-w-lg mx-auto">Cari kecamatan atau kabupaten, lalu gabung grup tenaga kerja pertanian setempat.</p>
+            </div>
+
+            <div id="searchBox" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 mb-6 shadow-xl">
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-500">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </span>
+                    <input type="search" id="regionSearch" autocomplete="off"
+                        placeholder="Cari kecamatan atau kabupaten (contoh: Pare, Kediri, Malang...)"
+                        class="w-full pl-11 pr-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm font-medium transition">
+                </div>
+                <div class="flex flex-wrap items-center gap-2 mt-3">
+                    <span class="text-xs text-slate-500 font-medium mr-1">Filter:</span>
+                    <div id="filterButtons" class="flex flex-wrap gap-2"></div>
+                    <span id="resultCount" class="ml-auto text-xs text-emerald-400 font-semibold"></span>
+                </div>
+            </div>
+
+            <div id="loadingState" class="flex flex-col items-center justify-center py-16">
+                <div class="spinner mb-4"></div>
+                <p class="text-slate-400 text-sm">Memuat data wilayah...</p>
+            </div>
+
+            <div id="regionContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+            <div id="noRegionResult" class="hidden text-center py-14 bg-slate-900 border border-slate-800 rounded-2xl mt-4">
+                <div class="w-16 h-16 mx-auto rounded-2xl bg-slate-800 flex items-center justify-center mb-4">
+                    <i class="fa-solid fa-seedling text-slate-500 text-2xl"></i>
+                </div>
+                <h3 class="text-white font-bold text-lg" id="emptyTitle">Wilayah Belum Tersedia</h3>
+                <p class="text-slate-400 text-sm mt-1.5 max-w-md mx-auto" id="emptyDesc">Belum ada data wilayah. Data akan muncul otomatis setelah regions.json diisi.</p>
+                <a href="https://wa.me/6285655533201?text=Halo%20Admin%20TaniKerja%2C%20saya%20ingin%20membuka%20grup%20baru"
+                   target="_blank" rel="noopener"
+                   class="inline-flex items-center gap-2 mt-5 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition shadow-lg shadow-emerald-900/30">
+                    <i class="fa-brands fa-whatsapp text-lg"></i> Buka Grup Wilayah Baru
+                </a>
+            </div>
+
+            <div id="errorState" class="hidden text-center py-14 bg-slate-900 border border-red-900/40 rounded-2xl mt-4">
+                <div class="w-16 h-16 mx-auto rounded-2xl bg-red-500/10 flex items-center justify-center mb-4">
+                    <i class="fa-solid fa-triangle-exclamation text-red-400 text-2xl"></i>
+                </div>
+                <h3 class="text-white font-bold text-lg">Gagal Memuat Data</h3>
+                <p class="text-slate-400 text-sm mt-1.5 max-w-md mx-auto">File <code class="text-emerald-400">regions.json</code> tidak ditemukan. Pastikan file ada di folder yang sama.</p>
+                <button onclick="loadRegions()" class="inline-flex items-center gap-2 mt-5 bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition">
+                    <i class="fa-solid fa-rotate-right"></i> Coba Lagi
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== PEKERJA TERVERIFIKASI ========== -->
+    <section id="pekerja" class="py-14 sm:py-16 border-b border-slate-800/60">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6">
+            <div class="text-center mb-8">
+                <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">Pekerja &amp; Kelompok</span>
+                <h2 class="text-2xl sm:text-3xl font-bold text-white mt-3">Daftar Pekerja Terverifikasi</h2>
+                <p class="text-slate-400 text-sm mt-2 max-w-lg mx-auto">Cari pekerja/kelompok terverifikasi berdasarkan <strong class="text-emerald-400">nomor kartu (RESI)</strong>, nama, alamat, atau wilayah.</p>
+            </div>
+
+            <div id="pekerjaSearchBox" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 mb-6 shadow-xl">
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-500">
+                        <i class="fa-solid fa-id-card"></i>
+                    </span>
+                    <input type="search" id="pekerjaSearch" autocomplete="off"
+                        placeholder="Cari nomor kartu, nama, alamat, atau wilayah (contoh: TK-2026-001, Krajan, Pare...)"
+                        class="w-full pl-11 pr-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm font-medium transition">
+                </div>
+                <div class="flex flex-wrap items-center gap-2 mt-3">
+                    <span class="text-xs text-slate-500 font-medium mr-1">Tipe:</span>
+                    <div id="pekerjaFilterButtons" class="flex flex-wrap gap-2">
+                        <button type="button" data-filter="" class="pekerja-filter-btn active px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-medium text-white transition hover:bg-emerald-600">Semua</button>
+                        <button type="button" data-filter="individu" class="pekerja-filter-btn px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-medium text-slate-300 transition hover:bg-emerald-600 hover:text-white">Individu</button>
+                        <button type="button" data-filter="kelompok" class="pekerja-filter-btn px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-medium text-slate-300 transition hover:bg-emerald-600 hover:text-white">Kelompok</button>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 mt-2">
+                    <span class="text-xs text-slate-500 font-medium mr-1">Wilayah:</span>
+                    <div id="pekerjaKabFilterButtons" class="flex flex-wrap gap-2"></div>
+                    <span id="pekerjaResultCount" class="ml-auto text-xs text-emerald-400 font-semibold"></span>
+                </div>
+            </div>
+
+            <div id="pekerjaLoading" class="flex flex-col items-center justify-center py-16">
+                <div class="spinner mb-4"></div>
+                <p class="text-slate-400 text-sm">Memuat data pekerja...</p>
+            </div>
+
+            <div id="pekerjaContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+            <div id="pekerjaNoResult" class="hidden text-center py-14 bg-slate-900 border border-slate-800 rounded-2xl mt-4">
+                <div class="w-16 h-16 mx-auto rounded-2xl bg-slate-800 flex items-center justify-center mb-4">
+                    <i class="fa-solid fa-user-check text-slate-500 text-2xl"></i>
+                </div>
+                <h3 class="text-white font-bold text-lg" id="pekerjaEmptyTitle">Pekerja Belum Tersedia</h3>
+                <p class="text-slate-400 text-sm mt-1.5 max-w-md mx-auto" id="pekerjaEmptyDesc">Belum ada data pekerja terverifikasi. Data akan muncul setelah pekerja.json diisi.</p>
+                <a href="https://wa.me/6285655533201?text=Halo%20Admin%20TaniKerja%2C%20saya%20ingin%20daftar%20sebagai%20pekerja%20terverifikasi"
+                   target="_blank" rel="noopener"
+                   class="inline-flex items-center gap-2 mt-5 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition shadow-lg shadow-emerald-900/30">
+                    <i class="fa-brands fa-whatsapp text-lg"></i> Daftar Sebagai Pekerja
+                </a>
+            </div>
+
+            <div id="pekerjaError" class="hidden text-center py-14 bg-slate-900 border border-red-900/40 rounded-2xl mt-4">
+                <div class="w-16 h-16 mx-auto rounded-2xl bg-red-500/10 flex items-center justify-center mb-4">
+                    <i class="fa-solid fa-triangle-exclamation text-red-400 text-2xl"></i>
+                </div>
+                <h3 class="text-white font-bold text-lg">Gagal Memuat Data</h3>
+                <p class="text-slate-400 text-sm mt-1.5 max-w-md mx-auto">File <code class="text-emerald-400">pekerja.json</code> tidak ditemukan. Pastikan file ada di folder yang sama.</p>
+                <button onclick="loadPekerja()" class="inline-flex items-center gap-2 mt-5 bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition">
+                    <i class="fa-solid fa-rotate-right"></i> Coba Lagi
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== CARA KERJA ========== -->
+    <section id="cara-kerja" class="py-16 sm:py-20">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6">
+            <div class="text-center max-w-2xl mx-auto mb-12">
+                <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">Alur Sederhana</span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-white mt-4">Bagaimana Cara Kerjanya?</h2>
+                <p class="text-slate-400 text-sm sm:text-base mt-2">Mudah digunakan petani senior maupun buruh tani harian — tanpa proses rumit.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-7 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-bl-full"></div>
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg mb-5">01</div>
+                    <h3 class="text-lg font-bold text-white mb-2">Pilih Wilayah Anda</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">Cari kabupaten atau kecamatan di direktori. Masuk ke grup lokal yang tepat sesuai kebutuhan lapangan.</p>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-7 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-teal-500/5 rounded-bl-full"></div>
+                    <div class="w-12 h-12 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-teal-400 flex items-center justify-center font-bold text-lg mb-5">02</div>
+                    <h3 class="text-lg font-bold text-white mb-2">Gabung Grup WA / FB</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">Klik tombol WhatsApp atau Facebook untuk masuk ke ruang komunikasi yang dipandu admin lokal terverifikasi.</p>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-7 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-bl-full"></div>
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg mb-5">03</div>
+                    <h3 class="text-lg font-bold text-white mb-2">Pasang Lowongan &amp; Kerja</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">Petani post kebutuhan tenaga (panen, tanam, pupuk). Pekerja langsung merespons via chat.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== KEUNGGULAN ========== -->
+    <section id="fitur" class="py-16 sm:py-20 bg-slate-900/40 border-t border-slate-800/60">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6">
+            <div class="text-center max-w-2xl mx-auto mb-12">
+                <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">Keunggulan</span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-white mt-4">Kenapa Memilih TaniKerja?</h2>
+                <p class="text-slate-400 text-sm sm:text-base mt-2">Solusi modern yang menggabungkan kemudahan web dengan kebiasaan komunikasi di lapangan.</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-emerald-500/30 transition">
+                    <div class="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-4"><i class="fa-solid fa-bolt text-lg"></i></div>
+                    <h3 class="font-bold text-white mb-1.5">Super Cepat &amp; Ringan</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">Terbuka sangat cepat bahkan di jaringan seluler pedesaan.</p>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-teal-500/30 transition">
+                    <div class="w-11 h-11 rounded-xl bg-teal-500/10 text-teal-400 flex items-center justify-center mb-4"><i class="fa-solid fa-shield-halved text-lg"></i></div>
+                    <h3 class="font-bold text-white mb-1.5">Aman &amp; Terkelola</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">Setiap grup dikelola mandor lokal untuk cegah spam &amp; penipuan.</p>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-emerald-500/30 transition">
+                    <div class="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-4"><i class="fa-solid fa-comments text-lg"></i></div>
+                    <h3 class="font-bold text-white mb-1.5">Langsung Negosiasi</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">Tawar upah &amp; jadwal kerja langsung via WhatsApp atau Facebook.</p>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-teal-500/30 transition">
+                    <div class="w-11 h-11 rounded-xl bg-teal-500/10 text-teal-400 flex items-center justify-center mb-4"><i class="fa-solid fa-hand-holding-dollar text-lg"></i></div>
+                    <h3 class="font-bold text-white mb-1.5">100% Gratis</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">Tanpa potongan upah atau biaya pendaftaran.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="border-t border-slate-800 py-10 text-slate-400 text-sm">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-5 text-center sm:text-left">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-900/30">
+                    <i class="fa-solid fa-seedling"></i>
+                </div>
+                <div>
+                    <div class="text-white font-bold">TaniKita</div>
+                    <div class="text-xs text-slate-500">Menghubungkan petani dan pekerja Indonesia</div>
+                </div>
+            </div>
+            <div class="text-xs text-slate-500">&copy; 2026 TaniKerja Indonesia</div>
+            <div class="flex items-center gap-3">
+                <a href="https://wa.me/6285655533201" target="_blank" rel="noopener" aria-label="WhatsApp"
+                   class="w-9 h-9 rounded-full bg-slate-800 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-brands fa-whatsapp"></i>
+                </a>
+                <a href="https://facebook.com/groups/tanikerja" target="_blank" rel="noopener" aria-label="Facebook"
+                   class="w-9 h-9 rounded-full bg-slate-800 hover:bg-blue-600 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-brands fa-facebook-f"></i>
+                </a>
+                <a href="#" aria-label="Instagram"
+                   class="w-9 h-9 rounded-full bg-slate-800 hover:bg-pink-600 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-brands fa-instagram"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // ============================================================
+        // SLIDER — data dari slides.json
+        // ============================================================
+        let SLIDES = [];
+        let currentSlide = 0;
+        let slideTimer = null;
+        let progressTimer = null;
+        const SLIDE_DURATION = 5500; // ms
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+        function escapeAttr(str) {
+            if (!str) return '';
+            return String(str).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+
+        function buildSlider() {
+            const container = document.getElementById('slidesContainer');
+            const dotsEl = document.getElementById('sliderDots');
+            if (!SLIDES.length) {
+                // Fallback jika slides.json kosong
+                container.innerHTML =
+                    '<div class="slide active" style="background:#0f172a">' +
+                    '<div class="slide-overlay"></div>' +
+                    '<div class="slide-content"><div class="max-w-6xl mx-auto px-4 sm:px-6 w-full">' +
+                    '<h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white max-w-xl leading-tight">TaniKita</h1>' +
+                    '<p class="mt-3 text-slate-300 max-w-md">Portal penghubung petani &amp; pekerja pertanian</p>' +
+                    '</div></div></div>';
+                return;
+            }
+
+            container.innerHTML = SLIDES.map(function (s, i) {
+                const isExternal = s.buttonLink && (s.buttonLink.startsWith('http') || s.buttonLink.startsWith('https'));
+                const btnAttrs = isExternal
+                    ? 'href="' + escapeAttr(s.buttonLink) + '" target="_blank" rel="noopener"'
+                    : 'href="' + escapeAttr(s.buttonLink || '#direktori') + '"';
+                return (
+                    '<div class="slide' + (i === 0 ? ' active' : '') + '" data-index="' + i + '">' +
+                    '<img src="' + escapeAttr(s.image) + '" alt="' + escapeAttr(s.title || '') + '" loading="' + (i === 0 ? 'eager' : 'lazy') + '">' +
+                    '<div class="slide-overlay"></div>' +
+                    '<div class="slide-content"><div class="max-w-6xl mx-auto px-4 sm:px-6 w-full">' +
+                    '<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-semibold mb-4">' +
+                    '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> TaniKita</div>' +
+                    '<h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white max-w-xl leading-tight drop-shadow-lg">' +
+                    escapeHtml(s.title || '') + '</h1>' +
+                    '<p class="mt-3 text-base sm:text-lg text-slate-200 max-w-md leading-relaxed drop-shadow">' +
+                    escapeHtml(s.subtitle || '') + '</p>' +
+                    (s.buttonText
+                        ? '<a ' + btnAttrs + ' class="inline-flex items-center gap-2 mt-6 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-lg shadow-emerald-900/40 transition">' +
+                          escapeHtml(s.buttonText) + ' <i class="fa-solid fa-arrow-right text-xs"></i></a>'
+                        : '') +
+                    '</div></div></div>'
+                );
+            }).join('');
+
+            dotsEl.innerHTML = SLIDES.map(function (_, i) {
+                return '<button class="slider-dot' + (i === 0 ? ' active' : '') + '" data-index="' + i + '" aria-label="Slide ' + (i + 1) + '"></button>';
+            }).join('');
+
+            dotsEl.querySelectorAll('.slider-dot').forEach(function (dot) {
+                dot.addEventListener('click', function () {
+                    goToSlide(parseInt(dot.dataset.index, 10));
+                });
+            });
+
+            currentSlide = 0;
+            startAutoplay();
+        }
+
+        function goToSlide(index) {
+            const slides = document.querySelectorAll('.slide');
+            const dots = document.querySelectorAll('.slider-dot');
+            if (!slides.length) return;
+            slides[currentSlide].classList.remove('active');
+            if (dots[currentSlide]) dots[currentSlide].classList.remove('active');
+            currentSlide = (index + slides.length) % slides.length;
+            slides[currentSlide].classList.add('active');
+            if (dots[currentSlide]) dots[currentSlide].classList.add('active');
+            startAutoplay();
+        }
+
+        function nextSlide() { goToSlide(currentSlide + 1); }
+        function prevSlide() { goToSlide(currentSlide - 1); }
+
+        function startAutoplay() {
+            clearInterval(slideTimer);
+            clearInterval(progressTimer);
+            const bar = document.getElementById('sliderProgress');
+            let progress = 0;
+            bar.style.width = '0%';
+            const step = 50;
+            progressTimer = setInterval(function () {
+                progress += (step / SLIDE_DURATION) * 100;
+                bar.style.width = Math.min(progress, 100) + '%';
+            }, step);
+            slideTimer = setInterval(nextSlide, SLIDE_DURATION);
+        }
+
+        document.getElementById('sliderNext').addEventListener('click', nextSlide);
+        document.getElementById('sliderPrev').addEventListener('click', prevSlide);
+
+        // Pause on hover
+        document.getElementById('sliderWrap').addEventListener('mouseenter', function () {
+            clearInterval(slideTimer);
+            clearInterval(progressTimer);
+        });
+        document.getElementById('sliderWrap').addEventListener('mouseleave', startAutoplay);
+
+        async function loadSlides() {
+            try {
+                const res = await fetch('slides.json?t=' + Date.now(), { cache: 'no-store' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                SLIDES = Array.isArray(data) ? data.filter(function (s) { return s && s.image; }) : [];
+            } catch (e) {
+                console.warn('slides.json tidak ditemukan, pakai fallback:', e);
+                SLIDES = [];
+            }
+            buildSlider();
+        }
+
+        // ============================================================
+        // REGIONS — data dari regions.json
+        // ============================================================
+        let REGIONS = [];
+        let currentFilter = '';
+
+        const container = document.getElementById('regionContainer');
+        const noResultEl = document.getElementById('noRegionResult');
+        const errorStateEl = document.getElementById('errorState');
+        const loadingStateEl = document.getElementById('loadingState');
+        const searchBoxEl = document.getElementById('searchBox');
+        const resultCountEl = document.getElementById('resultCount');
+        const searchInput = document.getElementById('regionSearch');
+        const filterButtonsEl = document.getElementById('filterButtons');
+        const emptyTitle = document.getElementById('emptyTitle');
+        const emptyDesc = document.getElementById('emptyDesc');
+
+        function badgeClass(kab) {
+            const k = (kab || '').toLowerCase();
+            if (k.includes('malang') || k.includes('banyuwangi')) return 'bg-teal-500/10 text-teal-400 border-teal-500/20';
+            return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+        }
+        function iconClass(kab) {
+            const k = (kab || '').toLowerCase();
+            if (k.includes('malang') || k.includes('banyuwangi')) return 'text-teal-400';
+            return 'text-emerald-400';
+        }
+
+        function createCard(r) {
+            const tags = Array.isArray(r.tags) ? r.tags : [];
+            const tagsHtml = tags.map(function (t) {
+                return '<span class="text-[11px] bg-slate-800 text-slate-300 px-2.5 py-1 rounded-md">' + escapeHtml(t) + '</span>';
+            }).join('');
+            const fbBtn = r.fb
+                ? '<a href="' + escapeAttr(r.fb) + '" target="_blank" rel="noopener" class="bg-slate-800 hover:bg-blue-600 text-slate-300 hover:text-white font-semibold text-xs px-3 py-2 rounded-xl transition flex items-center gap-1.5 shrink-0" title="Grup Facebook"><i class="fa-brands fa-facebook-f text-sm"></i></a>'
+                : '';
+            const waBtn = r.wa
+                ? '<a href="' + escapeAttr(r.wa) + '" target="_blank" rel="noopener" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-3.5 py-2 rounded-xl transition shadow-lg shadow-emerald-900/30 flex items-center gap-1.5 shrink-0"><i class="fa-brands fa-whatsapp text-sm"></i> Gabung WA</a>'
+                : '';
+            return (
+                '<article class="region-card bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 flex flex-col justify-between">' +
+                '<div>' +
+                '<div class="flex items-center justify-between mb-3 gap-2">' +
+                '<span class="badge-kab font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ' + badgeClass(r.kabupaten) + '">Kab. ' + escapeHtml(r.kabupaten) + '</span>' +
+                '<span class="text-xs text-slate-400 flex items-center gap-1 shrink-0"><i class="fa-solid fa-users ' + iconClass(r.kabupaten) + '"></i> ' + escapeHtml(r.anggota || '0') + ' Anggota</span>' +
+                '</div>' +
+                '<h3 class="text-lg sm:text-xl font-bold text-white">Kecamatan ' + escapeHtml(r.kecamatan) + '</h3>' +
+                '<p class="text-xs text-slate-400 mt-1.5 leading-relaxed">' + escapeHtml(r.deskripsi || '') + '</p>' +
+                '<div class="mt-3.5 flex flex-wrap gap-1.5">' + tagsHtml + '</div>' +
+                '</div>' +
+                '<div class="mt-5 pt-4 border-t border-slate-800 flex items-center justify-between gap-2">' +
+                '<span class="text-[11px] ' + iconClass(r.kabupaten) + ' font-medium flex items-center gap-1"><i class="fa-solid fa-shield-halved"></i> Admin Terverifikasi</span>' +
+                '<div class="flex items-center gap-2">' + fbBtn + waBtn + '</div>' +
+                '</div></article>'
+            );
+        }
+
+        function buildFilterButtons() {
+            const kabSet = new Set();
+            REGIONS.forEach(function (r) { if (r.kabupaten) kabSet.add(r.kabupaten); });
+            const kabList = Array.from(kabSet).sort();
+            let html = '<button type="button" data-filter="" class="filter-btn active px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-medium text-white transition hover:bg-emerald-600">Semua</button>';
+            kabList.forEach(function (kab) {
+                html += '<button type="button" data-filter="' + escapeAttr(kab.toLowerCase()) + '" class="filter-btn px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-medium text-slate-300 transition hover:bg-emerald-600 hover:text-white">Kab. ' + escapeHtml(kab) + '</button>';
+            });
+            filterButtonsEl.innerHTML = html;
+            filterButtonsEl.querySelectorAll('.filter-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    filterButtonsEl.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active', 'text-white'); });
+                    btn.classList.add('active', 'text-white');
+                    currentFilter = btn.dataset.filter || '';
+                    if (currentFilter) searchInput.value = '';
+                    applySearchAndFilter();
+                });
+            });
+        }
+
+        function render(list) {
+            container.innerHTML = list.map(createCard).join('');
+            const count = list.length;
+            if (REGIONS.length === 0) {
+                noResultEl.classList.remove('hidden');
+                emptyTitle.textContent = 'Wilayah Belum Tersedia';
+                emptyDesc.textContent = 'Belum ada data wilayah. Data akan muncul otomatis setelah regions.json diisi.';
+                resultCountEl.textContent = '';
+            } else if (count === 0) {
+                noResultEl.classList.remove('hidden');
+                emptyTitle.textContent = 'Wilayah Tidak Ditemukan';
+                emptyDesc.textContent = 'Kecamatan yang dicari belum terdaftar. Coba kata kunci lain atau daftarkan wilayah baru.';
+                resultCountEl.textContent = 'Tidak ada wilayah ditemukan';
+            } else {
+                noResultEl.classList.add('hidden');
+                resultCountEl.textContent = 'Menampilkan ' + count + ' wilayah';
+            }
+        }
+
+        function applySearchAndFilter() {
+            const term = searchInput.value.toLowerCase().trim();
+            const filtered = REGIONS.filter(function (r) {
+                const haystack = ((r.kecamatan || '') + ' ' + (r.kabupaten || '') + ' jawa timur ' + (Array.isArray(r.tags) ? r.tags.join(' ') : '')).toLowerCase();
+                const matchSearch = !term || haystack.indexOf(term) !== -1;
+                const matchFilter = !currentFilter || (r.kabupaten || '').toLowerCase().indexOf(currentFilter) !== -1;
+                return matchSearch && matchFilter;
+            });
+            render(filtered);
+        }
+
+        function showLoading() {
+            loadingStateEl.classList.remove('hidden');
+            searchBoxEl.classList.add('hidden');
+            noResultEl.classList.add('hidden');
+            errorStateEl.classList.add('hidden');
+            container.innerHTML = '';
+        }
+        function showError() {
+            loadingStateEl.classList.add('hidden');
+            searchBoxEl.classList.add('hidden');
+            noResultEl.classList.add('hidden');
+            errorStateEl.classList.remove('hidden');
+            container.innerHTML = '';
+            document.getElementById('statKecamatan').textContent = '—';
+        }
+        function showData() {
+            loadingStateEl.classList.add('hidden');
+            errorStateEl.classList.add('hidden');
+            if (REGIONS.length === 0) {
+                searchBoxEl.classList.add('hidden');
+                noResultEl.classList.remove('hidden');
+                emptyTitle.textContent = 'Wilayah Belum Tersedia';
+                emptyDesc.textContent = 'Belum ada data wilayah. Data akan muncul otomatis setelah regions.json diisi.';
+                document.getElementById('statKecamatan').textContent = '0';
+            } else {
+                searchBoxEl.classList.remove('hidden');
+                noResultEl.classList.add('hidden');
+                document.getElementById('statKecamatan').textContent = REGIONS.length + '+';
+                buildFilterButtons();
+                applySearchAndFilter();
+            }
+        }
+
+        async function loadRegions() {
+            showLoading();
+            try {
+                const res = await fetch('regions.json?t=' + Date.now(), { cache: 'no-store' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                REGIONS = Array.isArray(data)
+                    ? data.filter(function (item) { return item && item.kecamatan && item.kabupaten; })
+                    : [];
+                showData();
+            } catch (err) {
+                console.error('Gagal memuat regions.json:', err);
+                REGIONS = [];
+                showError();
+            }
+        }
+
+        searchInput.addEventListener('input', applySearchAndFilter);
+        document.getElementById('menuBtn').addEventListener('click', function () {
+            document.getElementById('mobileMenu').classList.toggle('hidden');
+        });
+        document.querySelectorAll('#mobileMenu a').forEach(function (link) {
+            link.addEventListener('click', function () {
+                document.getElementById('mobileMenu').classList.add('hidden');
+            });
+        });
+
+        // ============================================================
+        // PEKERJA — data dari pekerja.json
+        // ============================================================
+        let PEKERJA = [];
+        let currentPekerjaFilter = '';
+        let currentPekerjaKabFilter = '';
+
+        const pekerjaContainer = document.getElementById('pekerjaContainer');
+        const pekerjaNoResult = document.getElementById('pekerjaNoResult');
+        const pekerjaError = document.getElementById('pekerjaError');
+        const pekerjaLoading = document.getElementById('pekerjaLoading');
+        const pekerjaSearchBox = document.getElementById('pekerjaSearchBox');
+        const pekerjaResultCount = document.getElementById('pekerjaResultCount');
+        const pekerjaSearchInput = document.getElementById('pekerjaSearch');
+        const pekerjaFilterButtons = document.getElementById('pekerjaFilterButtons');
+        const pekerjaKabFilterButtons = document.getElementById('pekerjaKabFilterButtons');
+        const pekerjaEmptyTitle = document.getElementById('pekerjaEmptyTitle');
+        const pekerjaEmptyDesc = document.getElementById('pekerjaEmptyDesc');
+
+        function createPekerjaCard(p) {
+            const isKelompok = (p.tipe || '').toLowerCase() === 'kelompok';
+            const tipeBadge = isKelompok
+                ? '<span class="badge-kab font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border bg-teal-500/10 text-teal-400 border-teal-500/20">Kelompok</span>'
+                : '<span class="badge-kab font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">Individu</span>';
+            const anggotaText = isKelompok && p.anggota
+                ? '<span class="text-xs text-slate-400 flex items-center gap-1 shrink-0"><i class="fa-solid fa-users text-teal-400"></i> ' + escapeHtml(String(p.anggota)) + ' Anggota</span>'
+                : (p.pengalaman
+                    ? '<span class="text-xs text-slate-400 flex items-center gap-1 shrink-0"><i class="fa-solid fa-clock text-emerald-400"></i> ' + escapeHtml(p.pengalaman) + '</span>'
+                    : '');
+            const tags = Array.isArray(p.keahlian) ? p.keahlian : [];
+            const tagsHtml = tags.map(function (t) {
+                return '<span class="text-[11px] bg-slate-800 text-slate-300 px-2.5 py-1 rounded-md">' + escapeHtml(t) + '</span>';
+            }).join('');
+            const nomer = String(p.nomer || p.nomor || '').replace(/\D/g, '');
+            const waLink = nomer
+                ? 'https://wa.me/' + nomer + '?text=' + encodeURIComponent('Halo, saya dari TaniKita. Tertarik menggunakan jasa Anda.')
+                : '';
+            const waBtn = waLink
+                ? '<a href="' + escapeAttr(waLink) + '" target="_blank" rel="noopener" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-3.5 py-2 rounded-xl transition shadow-lg shadow-emerald-900/30 flex items-center gap-1.5 shrink-0"><i class="fa-brands fa-whatsapp text-sm"></i> Hubungi WA</a>'
+                : '';
+            const kartu = p.nomor_kartu || p.resi || p.kartu || '';
+            const kartuHtml = kartu
+                ? '<div class="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-950 border border-emerald-500/30">' +
+                  '<i class="fa-solid fa-id-card text-emerald-400 text-xs"></i>' +
+                  '<span class="text-[11px] text-slate-500 uppercase tracking-wider">No. Kartu</span>' +
+                  '<span class="text-sm font-bold text-emerald-400 font-mono tracking-wide">' + escapeHtml(kartu) + '</span>' +
+                  '</div>'
+                : '';
+            const nomerDisplay = nomer
+                ? '<span class="text-[11px] text-slate-400 font-mono">+' + escapeHtml(nomer) + '</span>'
+                : '';
+            return (
+                '<article class="region-card bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 flex flex-col justify-between">' +
+                '<div>' +
+                '<div class="flex items-center justify-between mb-3 gap-2">' +
+                tipeBadge + anggotaText +
+                '</div>' +
+                '<h3 class="text-lg sm:text-xl font-bold text-white">' + escapeHtml(p.nama || '') + '</h3>' +
+                '<p class="text-xs text-slate-400 mt-1 flex items-center gap-1"><i class="fa-solid fa-map-marker-alt text-emerald-500/80"></i> Kec. ' + escapeHtml(p.kecamatan || '') + ', Kab. ' + escapeHtml(p.kabupaten || '') + '</p>' +
+                (p.alamat
+                    ? '<p class="text-xs text-slate-500 mt-1 flex items-start gap-1.5"><i class="fa-solid fa-location-dot text-slate-500 mt-0.5 shrink-0"></i> <span>' + escapeHtml(p.alamat) + '</span></p>'
+                    : '') +
+                kartuHtml +
+                '<p class="text-xs text-slate-400 mt-2 leading-relaxed">' + escapeHtml(p.deskripsi || '') + '</p>' +
+                '<div class="mt-3.5 flex flex-wrap gap-1.5">' + tagsHtml + '</div>' +
+                '</div>' +
+                '<div class="mt-5 pt-4 border-t border-slate-800 flex items-center justify-between gap-2">' +
+                '<div class="flex flex-col gap-0.5">' +
+                '<span class="text-[11px] text-emerald-400 font-medium flex items-center gap-1"><i class="fa-solid fa-shield-halved"></i> Terverifikasi</span>' +
+                nomerDisplay +
+                '</div>' +
+                '<div class="flex items-center gap-2">' + waBtn + '</div>' +
+                '</div></article>'
+            );
+        }
+
+        function renderPekerja(list) {
+            pekerjaContainer.innerHTML = list.map(createPekerjaCard).join('');
+            const count = list.length;
+            if (PEKERJA.length === 0) {
+                pekerjaNoResult.classList.remove('hidden');
+                pekerjaEmptyTitle.textContent = 'Pekerja Belum Tersedia';
+                pekerjaEmptyDesc.textContent = 'Belum ada data pekerja terverifikasi. Data akan muncul setelah pekerja.json diisi.';
+                pekerjaResultCount.textContent = '';
+            } else if (count === 0) {
+                pekerjaNoResult.classList.remove('hidden');
+                pekerjaEmptyTitle.textContent = 'Tidak Ditemukan';
+                pekerjaEmptyDesc.textContent = 'Tidak ada pekerja/kelompok yang cocok. Coba kata kunci atau filter lain.';
+                pekerjaResultCount.textContent = 'Tidak ada hasil';
+            } else {
+                pekerjaNoResult.classList.add('hidden');
+                pekerjaResultCount.textContent = 'Menampilkan ' + count + ' data';
+            }
+        }
+
+        function applyPekerjaSearchAndFilter() {
+            const term = pekerjaSearchInput.value.toLowerCase().trim();
+            const termNorm = term.replace(/[\s\-]/g, '');
+            const filtered = PEKERJA.filter(function (p) {
+                const kartu = String(p.nomor_kartu || p.resi || p.kartu || '').toLowerCase();
+                const kartuNorm = kartu.replace(/[\s\-]/g, '');
+                const nomerStr = String(p.nomer || p.nomor || '').toLowerCase();
+                const haystack = (
+                    (p.nama || '') + ' ' +
+                    (p.kecamatan || '') + ' ' +
+                    (p.kabupaten || '') + ' ' +
+                    (p.alamat || '') + ' ' +
+                    (p.tipe || '') + ' ' +
+                    (p.deskripsi || '') + ' ' +
+                    kartu + ' ' +
+                    nomerStr + ' ' +
+                    (Array.isArray(p.keahlian) ? p.keahlian.join(' ') : '')
+                ).toLowerCase();
+                const matchSearch = !term ||
+                    haystack.indexOf(term) !== -1 ||
+                    (termNorm && kartuNorm.indexOf(termNorm) !== -1) ||
+                    (termNorm && nomerStr.replace(/\D/g, '').indexOf(termNorm.replace(/\D/g, '')) !== -1);
+                const matchFilter = !currentPekerjaFilter || (p.tipe || '').toLowerCase() === currentPekerjaFilter;
+                const matchKab = !currentPekerjaKabFilter || (p.kabupaten || '').toLowerCase() === currentPekerjaKabFilter;
+                const isVerified = p.verifikasi !== false && p.verified !== false;
+                return matchSearch && matchFilter && matchKab && isVerified;
+            });
+            renderPekerja(filtered);
+        }
+
+        function buildPekerjaKabFilters() {
+            if (!pekerjaKabFilterButtons) return;
+            const kabSet = new Set();
+            PEKERJA.forEach(function (p) { if (p.kabupaten) kabSet.add(p.kabupaten); });
+            const kabList = Array.from(kabSet).sort();
+            let html = '<button type="button" data-kab="" class="pekerja-filter-btn active px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-medium text-white transition hover:bg-emerald-600">Semua Wilayah</button>';
+            kabList.forEach(function (kab) {
+                html += '<button type="button" data-kab="' + escapeAttr(kab.toLowerCase()) + '" class="pekerja-filter-btn px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-medium text-slate-300 transition hover:bg-emerald-600 hover:text-white">Kab. ' + escapeHtml(kab) + '</button>';
+            });
+            pekerjaKabFilterButtons.innerHTML = html;
+            pekerjaKabFilterButtons.querySelectorAll('.pekerja-filter-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    pekerjaKabFilterButtons.querySelectorAll('.pekerja-filter-btn').forEach(function (b) {
+                        b.classList.remove('active', 'text-white');
+                        b.classList.add('text-slate-300');
+                    });
+                    btn.classList.add('active', 'text-white');
+                    btn.classList.remove('text-slate-300');
+                    currentPekerjaKabFilter = btn.dataset.kab || '';
+                    applyPekerjaSearchAndFilter();
+                });
+            });
+        }
+
+        function showPekerjaLoading() {
+            pekerjaLoading.classList.remove('hidden');
+            pekerjaSearchBox.classList.add('hidden');
+            pekerjaNoResult.classList.add('hidden');
+            pekerjaError.classList.add('hidden');
+            pekerjaContainer.innerHTML = '';
+        }
+        function showPekerjaError() {
+            pekerjaLoading.classList.add('hidden');
+            pekerjaSearchBox.classList.add('hidden');
+            pekerjaNoResult.classList.add('hidden');
+            pekerjaError.classList.remove('hidden');
+            pekerjaContainer.innerHTML = '';
+        }
+        function showPekerjaData() {
+            pekerjaLoading.classList.add('hidden');
+            pekerjaError.classList.add('hidden');
+            if (PEKERJA.length === 0) {
+                pekerjaSearchBox.classList.add('hidden');
+                pekerjaNoResult.classList.remove('hidden');
+                pekerjaEmptyTitle.textContent = 'Pekerja Belum Tersedia';
+                pekerjaEmptyDesc.textContent = 'Belum ada data pekerja terverifikasi. Data akan muncul setelah pekerja.json diisi.';
+            } else {
+                pekerjaSearchBox.classList.remove('hidden');
+                pekerjaNoResult.classList.add('hidden');
+                buildPekerjaKabFilters();
+                applyPekerjaSearchAndFilter();
+            }
+        }
+
+        pekerjaFilterButtons.querySelectorAll('.pekerja-filter-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                pekerjaFilterButtons.querySelectorAll('.pekerja-filter-btn').forEach(function (b) {
+                    b.classList.remove('active', 'text-white');
+                    b.classList.add('text-slate-300');
+                });
+                btn.classList.add('active', 'text-white');
+                btn.classList.remove('text-slate-300');
+                currentPekerjaFilter = btn.dataset.filter || '';
+                applyPekerjaSearchAndFilter();
+            });
+        });
+
+        async function loadPekerja() {
+            showPekerjaLoading();
+            try {
+                const res = await fetch('pekerja.json?t=' + Date.now(), { cache: 'no-store' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                PEKERJA = Array.isArray(data)
+                    ? data.filter(function (item) {
+                        return item && item.nama && (item.nomer || item.nomor || item.nomor_kartu || item.resi);
+                    })
+                    : [];
+                showPekerjaData();
+            } catch (err) {
+                console.error('Gagal memuat pekerja.json:', err);
+                PEKERJA = [];
+                showPekerjaError();
+            }
+        }
+
+        pekerjaSearchInput.addEventListener('input', applyPekerjaSearchAndFilter);
+
+        // Init
+        loadSlides();
+        loadRegions();
+        loadPekerja();
+    </script>
+</body>
+</html>
